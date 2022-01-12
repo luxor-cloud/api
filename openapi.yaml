@@ -37,6 +37,36 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/user'
+  /users/{id}/servers:
+    get:
+      description: Returns all the servers a user owns.
+      parameters:
+        - name: id
+          in: path
+          description: ID of the user
+          schema:
+            type: string
+      responses:
+        '200':
+          description: servers response
+          content:
+            application/json:
+              schema:
+                type: array
+                  items:
+                    $ref: '#/components/schemas/server'
+  /servers/{id}/??: # todo
+    post:
+      description: let the server do stuff
+      parameters:
+        - name: id
+          in: path
+          description: ID of the server
+          schema:
+            type: string
+      responses:
+        '200':
+          description: response      
 components:
   schemas:
     user:
@@ -48,4 +78,17 @@ components:
         id:
           type: string
         name:
+          type: string
+    server:
+      type: object
+      required:
+        - id
+        - name
+        - ip
+      properties:
+        id:
+          type: string
+        name: 
+          type: string
+        ip:
           type: string
