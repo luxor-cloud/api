@@ -3,6 +3,24 @@ info:
   title: luxor.cloud public API
   version: 0.1.0
 paths:
+  /:
+    get:
+      description: Returns metadata about the API.
+      responses:
+        '200':
+          description: API metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version: 
+                    type: string
+                    description: version currently available
+              example:
+                {
+                  version: "v1"
+                }
   /users/{id}:
     get:
       description: Returns a user based on the given ID.
@@ -18,16 +36,16 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/User'
+                $ref: '#/components/schemas/user'
 components:
   schemas:
-    User:
-      - type: object
-        required:
-          - id
-          - name
-        properties:
-          id:
-            type: string
-          name:
-            type: string
+    user:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
