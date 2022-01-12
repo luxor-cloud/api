@@ -53,8 +53,8 @@ paths:
             application/json:
               schema:
                 type: array
-                  items:
-                    $ref: '#/components/schemas/server'
+                items:
+                  $ref: '#/components/schemas/server'
   /servers/{id}/??: # todo
     post:
       description: let the server do stuff
