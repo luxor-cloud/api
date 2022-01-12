@@ -27,6 +27,7 @@ paths:
       parameters:
         - name: id
           in: path
+          required: true
           description: ID of the user to return
           schema: 
             type: string
@@ -43,6 +44,7 @@ paths:
       parameters:
         - name: id
           in: path
+          required: true
           description: ID of the user
           schema:
             type: string
@@ -61,6 +63,7 @@ paths:
       parameters:
         - name: id
           in: path
+          required: true
           description: ID of the server
           schema:
             type: string
