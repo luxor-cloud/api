@@ -54,7 +54,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schema/action'
+              $ref: '#/components/schemas/action'
       responses:
         '200':
           description: response      
