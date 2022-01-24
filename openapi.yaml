@@ -89,7 +89,7 @@ components:
         - type
       properties:
         type: 
-          type: string
+          $ref: '#/components/schemas/actionEnum'
         data:
           type: object
     actionEnum:
