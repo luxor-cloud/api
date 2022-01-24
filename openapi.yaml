@@ -3,24 +3,6 @@ info:
   title: luxor.cloud public API
   version: 0.1.0
 paths:
-  /:
-    get:
-      description: Returns metadata about the API.
-      responses:
-        '200':
-          description: API metadata
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  version: 
-                    type: string
-                    description: version currently available
-              example:
-                {
-                  version: "v1"
-                }
   /users/{id}:
     get:
       description: Returns a user based on the given ID.
@@ -57,7 +39,7 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/server'
-  /servers/{id}/??: # todo
+  /servers/{id}/actions:
     post:
       description: let the server do stuff
       parameters:
@@ -67,6 +49,12 @@ paths:
           description: ID of the server
           schema:
             type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schema/action'
       responses:
         '200':
           description: response      
@@ -95,3 +83,15 @@ components:
           type: string
         ip:
           type: string
+    action:
+      type: object
+      required:
+        - type
+      properties:
+        type: 
+          type: string
+        data:
+          type: object
+    actionEnum:
+      type: string
+      enum: [stop, start, restart, backup]
