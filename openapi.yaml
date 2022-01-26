@@ -20,6 +20,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/user'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
   /users/{id}/servers:
     get:
       description: Returns all the servers a user owns.
@@ -39,6 +45,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/server'
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
   /servers/{id}/actions:
     post:
       description: let the server do stuff
@@ -57,9 +69,34 @@ paths:
               $ref: '#/components/schemas/action'
       responses:
         '200':
-          description: response      
+          description: Updates for actions will be delivered through SSE endpoint.
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
+  /servers/{id}/log:
+    get:
+      description: |
+        WebSocket connection to retrieve server logs.
+        See https://grafana.com/docs/loki/latest/api/#get-lokiapiv1tail for more information.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the server
+          schema:
+            type: string
 components:
   schemas:
+    error:
+      type: object
+      required:
+        - msg
+      properties:
+        msg:
+          type: string
     user:
       type: object
       required:
@@ -91,7 +128,11 @@ components:
         type: 
           $ref: '#/components/schemas/actionEnum'
         data:
-          type: object
+          oneOf:
+            - $ref: '#/components/schemas/stopActionPayload'
+            - $ref: '#/components/schemas/startActionPayload'
+            - $ref: '#/components/schemas/restartActionPayload'
+            - $ref: '#/components/schemas/backupActionPayload'
     actionEnum:
       type: string
       enum: [stop, start, restart, backup]
