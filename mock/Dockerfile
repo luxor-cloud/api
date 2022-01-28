@@ -1,6 +1,7 @@
 FROM golang:1.17.6-alpine3.15 AS builder
 WORKDIR /build
 COPY main.go main.go
+COPY data.go data.go
 COPY go.mod go.mod
 COPY go.sum go.sum
 RUN go mod download
