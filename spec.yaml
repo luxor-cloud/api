@@ -80,7 +80,6 @@ paths:
     get:
       description: |
         WebSocket connection to retrieve server logs.
-        See https://grafana.com/docs/loki/latest/api/#get-lokiapiv1tail for more information.
       parameters:
         - name: id
           in: path
@@ -88,8 +87,32 @@ paths:
           description: ID of the server
           schema:
             type: string
+      responses:
+        '200':
+          description: The server will continously send messages of type logStream
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/logStream'
 components:
   schemas:
+    logStream:
+      type: object
+      required:
+        - entries
+      properties:
+        entries:
+          type: array
+          items:
+            type: object
+            required:
+              - ts
+              - line
+            properties:
+              ts:
+                type: string
+              line: 
+                type: string 
     error:
       type: object
       required:
