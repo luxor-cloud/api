@@ -51,6 +51,41 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/error'
+    put:
+      description: | 
+        Create a new server. Note that this does not automatically start the server.
+        This call will only create a server resource. To start the server an action
+        of type Start has to be issued.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID of the user
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content: 
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - name
+                - region
+      responses:
+        '200':
+          description: server response
+          content:
+            application/json:
+              schema:
+                $ref: server
+        default:
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error'
   /servers/{id}/actions:
     post:
       description: let the server do stuff
@@ -136,12 +171,21 @@ components:
         - id
         - name
         - ip
+        - region
+        - datacenter
+        - type
       properties:
         id:
           type: string
         name: 
           type: string
         ip:
+          type: string
+        region:
+          type: string
+        datacenter:
+          type: string
+        type:
           type: string
     action:
       type: object
