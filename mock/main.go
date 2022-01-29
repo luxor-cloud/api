@@ -4,12 +4,14 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
 	"time"
 
 	lorem "github.com/drhodes/golorem"
+	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
@@ -20,9 +22,12 @@ type user struct {
 }
 
 type server struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
-	IP   string `json:"ip"`
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	IP         string `json:"ip"`
+	Region     string `json:"region"`
+	Datacenter string `json:"datacenter"`
+	Type       string `json:"type"`
 }
 
 type action struct {
@@ -42,6 +47,12 @@ type serverLog struct {
 	Entries []logEntry `json:"entries"`
 }
 
+type createServerReq struct {
+	Type   string `json:"type"`
+	Name   string `json:"name"`
+	Region string `json:"region"`
+}
+
 func main() {
 	var addr string
 	flag.StringVar(&addr, "addr", ":8080", "http listen address")
@@ -49,6 +60,7 @@ func main() {
 	r := mux.NewRouter()
 	r.HandleFunc("/users/{id}", getUserHandler).Methods(http.MethodGet)
 	r.HandleFunc("/users/{id}/servers", getServersHandler).Methods(http.MethodGet)
+	r.HandleFunc("/users/{id}/servers", putServersHandler).Methods(http.MethodPut)
 	r.HandleFunc("/servers/{id}/action", postActionHandler).Methods(http.MethodPost)
 	r.HandleFunc("/servers/{id}/log", getLogsHandler).Methods(http.MethodGet)
 	log.Fatal(http.ListenAndServe(addr, r))
@@ -82,6 +94,45 @@ func getServersHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sendResp(w, server)
+}
+
+func putServersHandler(w http.ResponseWriter, r *http.Request) {
+	const op = "putServersHandler"
+	id, ok := mux.Vars(r)["id"]
+	if !ok {
+		e(w, op, errors.New("id is missing"), http.StatusBadRequest)
+		return
+	}
+
+	tmp, err := readReq(r)
+	if err != nil {
+		e(w, op, err, http.StatusInternalServerError)
+	}
+
+	req := tmp.(createServerReq)
+
+	serverID, err := uuid.NewRandom()
+	if err != nil {
+		e(w, op, err, http.StatusBadRequest)
+		return
+	}
+
+	created := server{
+		ID:         serverID.String(),
+		Name:       req.Name,
+		IP:         "45.30.234",
+		Region:     req.Region,
+		Datacenter: "my-dc15",
+		Type:       req.Type,
+	}
+
+	serversByUser[id] = append(serversByUser[id], created)
+
+	// simulate some response time
+	wait := rand.Intn(5-1) + 1
+	time.Sleep(time.Duration(wait) * time.Second)
+
+	sendResp(w, created)
 }
 
 func postActionHandler(w http.ResponseWriter, r *http.Request) {
@@ -142,6 +193,18 @@ func getLogsHandler(w http.ResponseWriter, r *http.Request) {
 			log.Printf("%s: %v\n", op, err)
 		}
 	}
+}
+
+func readReq(r *http.Request) (interface{}, error) {
+	data, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	var v interface{}
+	if err := json.Unmarshal(data, &v); err != nil {
+		return nil, err
+	}
+	return v, nil
 }
 
 func sendResp(w http.ResponseWriter, body interface{}) {
