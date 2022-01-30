@@ -4,17 +4,27 @@ import (
 	"encoding/json"
 	"errors"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	lorem "github.com/drhodes/golorem"
+	"github.com/golang-jwt/jwt"
 	"github.com/google/uuid"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
 )
+
+var jwtSigningKey = []byte("test")
+
+type userClaims struct {
+	jwt.StandardClaims
+	ID string `json:"userId"`
+}
 
 type user struct {
 	ID   string `json:"id"`
@@ -58,9 +68,9 @@ func main() {
 	flag.StringVar(&addr, "addr", ":8080", "http listen address")
 	flag.Parse()
 	r := mux.NewRouter()
-	r.HandleFunc("/users/{id}", getUserHandler).Methods(http.MethodGet)
-	r.HandleFunc("/users/{id}/servers", getServersHandler).Methods(http.MethodGet)
-	r.HandleFunc("/users/{id}/servers", putServersHandler).Methods(http.MethodPut)
+	r.HandleFunc("/me", getUserHandler).Methods(http.MethodGet)
+	r.HandleFunc("/servers", getServersHandler).Methods(http.MethodGet)
+	r.HandleFunc("/servers", putServersHandler).Methods(http.MethodPut)
 	r.HandleFunc("/servers/{id}/action", postActionHandler).Methods(http.MethodPost)
 	r.HandleFunc("/servers/{id}/log", getLogsHandler).Methods(http.MethodGet)
 	log.Fatal(http.ListenAndServe(addr, r))
@@ -68,9 +78,9 @@ func main() {
 
 func getUserHandler(w http.ResponseWriter, r *http.Request) {
 	const op = "getUserHandler"
-	id, ok := mux.Vars(r)["id"]
-	if !ok {
-		e(w, op, errors.New("id is missing"), http.StatusBadRequest)
+	id, err := userIDFromHeader(r)
+	if err != nil {
+		e(w, op, err, http.StatusBadRequest)
 		return
 	}
 	user, ok := users[id]
@@ -83,9 +93,9 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 
 func getServersHandler(w http.ResponseWriter, r *http.Request) {
 	const op = "getServersHandler"
-	id, ok := mux.Vars(r)["id"]
-	if !ok {
-		e(w, op, errors.New("id is missing"), http.StatusBadRequest)
+	id, err := userIDFromHeader(r)
+	if err != nil {
+		e(w, op, err, http.StatusBadRequest)
 		return
 	}
 	server, ok := serversByUser[id]
@@ -98,9 +108,9 @@ func getServersHandler(w http.ResponseWriter, r *http.Request) {
 
 func putServersHandler(w http.ResponseWriter, r *http.Request) {
 	const op = "putServersHandler"
-	id, ok := mux.Vars(r)["id"]
-	if !ok {
-		e(w, op, errors.New("id is missing"), http.StatusBadRequest)
+	id, err := userIDFromHeader(r)
+	if err != nil {
+		e(w, op, err, http.StatusBadRequest)
 		return
 	}
 
@@ -195,6 +205,31 @@ func getLogsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func userIDFromHeader(r *http.Request) (string, error) {
+	tokenStr := r.Header.Get("Authorization")
+	if tokenStr == "" {
+		return "", errors.New("no authorization header set")
+	}
+
+	// format: bearer <token>
+	parts := strings.Split(tokenStr, " ")
+	if len(parts) < 2 {
+		return "", errors.New("authorization header contains invalid value")
+	}
+
+	token, err := jwt.ParseWithClaims(parts[1], &userClaims{}, func(t *jwt.Token) (interface{}, error) {
+		return jwtSigningKey, nil
+	})
+	if err != nil {
+		return "", err
+	}
+	claims, ok := token.Claims.(*userClaims)
+	if !ok || !token.Valid {
+		return "", errors.New("token or claims not valid")
+	}
+	return claims.ID, nil
+}
+
 func readReq(r *http.Request) (interface{}, error) {
 	data, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -222,5 +257,9 @@ func sendResp(w http.ResponseWriter, body interface{}) {
 
 func e(w http.ResponseWriter, op string, err error, code int) {
 	log.Printf("%s: %v\n", op, err)
-	// TODO: send error back
+	payload := fmt.Sprintf(`{"msg": "%v"}`, err)
+	w.WriteHeader(code)
+	if _, err := w.Write([]byte(payload)); err != nil {
+		log.Printf("%s: %v\n", op, err)
+	}
 }
