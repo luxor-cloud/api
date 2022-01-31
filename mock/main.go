@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"github.com/gorilla/handlers"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -73,7 +74,10 @@ func main() {
 	r.HandleFunc("/servers", putServersHandler).Methods(http.MethodPut)
 	r.HandleFunc("/servers/{id}/action", postActionHandler).Methods(http.MethodPost)
 	r.HandleFunc("/servers/{id}/log", getLogsHandler).Methods(http.MethodGet)
-	log.Fatal(http.ListenAndServe(addr, r))
+
+	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT"})
+
+	log.Fatal(http.ListenAndServe(addr, handlers.CORS(methodsOk)(r)))
 }
 
 func getUserHandler(w http.ResponseWriter, r *http.Request) {
@@ -250,6 +254,7 @@ func sendResp(w http.ResponseWriter, body interface{}) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
 	if _, err := w.Write(j); err != nil {
 		log.Printf("%s: %v\n", op, err)
 	}
@@ -259,6 +264,7 @@ func e(w http.ResponseWriter, op string, err error, code int) {
 	log.Printf("%s: %v\n", op, err)
 	payload := fmt.Sprintf(`{"msg": "%v"}`, err)
 	w.WriteHeader(code)
+	w.Header().Set("Content-Type", "application/json")
 	if _, err := w.Write([]byte(payload)); err != nil {
 		log.Printf("%s: %v\n", op, err)
 	}
